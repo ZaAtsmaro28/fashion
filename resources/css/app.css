@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+    /* Earth Tone Palette */
+    --color-primary: #6b705c; /* Sage Green */
+    --color-primary-light: #a5a58d;
+    --color-secondary: #b7b7a4; /* Dusty Grey */
+    --color-accent: #ddb892; /* Sandy Brown */
+    --color-base: #f0ead6; /* Eggshell/Cream */
+    --color-danger: #bc4749; /* Muted Red */
+
+    /* Custom Fonts atau Spacing jika diperlukan */
+    --font-sans: "Inter", ui-sans-serif, system-ui;
+}

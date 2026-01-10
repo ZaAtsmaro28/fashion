@@ -18,7 +18,11 @@ class ReportService
     // Fungsi lama untuk API JSON
     public function getSalesReport(array $filters)
     {
-        return $this->orderRepo->getReportData($filters['start_date'], $filters['end_date']);
+        $startDate = $filters['start_date'] ?? null;
+        $endDate   = $filters['end_date'] ?? null;
+        $perPage   = $filters['per_page'] ?? 10;
+
+        return $this->orderRepo->getReportData($startDate, $endDate, $perPage);
     }
 
     // Fungsi baru untuk Download Excel
@@ -29,7 +33,8 @@ class ReportService
         $fileName = 'Sales_Report_' . $filters['start_date'] . '_to_' . $filters['end_date'] . '.xlsx';
 
         return Excel::download(
-            new SalesReportExport($data['items_sold']),
+            // Tambahkan variabel tanggal di sini
+            new SalesReportExport($data['items_sold'], $filters['start_date'], $filters['end_date']),
             $fileName
         );
     }

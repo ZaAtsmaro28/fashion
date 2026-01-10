@@ -72,6 +72,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // BOUNDARY: OWNER ONLY (Sensitive Data & User Management)
     // =========================================================
     Route::middleware('role:owner')->group(function () {
+        // User Management
         Route::apiResource('users', UserController::class);
 
         // Void (Sangat sensitif, harus dengan izin owner)

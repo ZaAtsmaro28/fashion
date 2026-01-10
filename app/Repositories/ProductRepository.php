@@ -10,11 +10,11 @@ class ProductRepository implements ProductRepositoryInterface
 {
     public function getAll($search = null, $categoryId = null)
     {
-        return Product::with('category')
+        return Product::with(['category', 'variants'])
             ->when($search, fn($q) => $q->where('name', 'like', "%$search%"))
             ->when($categoryId, fn($q) => $q->where('category_id', $categoryId))
             ->orderBy('id', 'asc')
-            ->paginate(10);
+            ->paginate(12);
     }
 
     public function findById($id)

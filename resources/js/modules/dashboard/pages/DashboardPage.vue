@@ -6,7 +6,7 @@
             >
                 Ringkasan Bisnis
             </h1>
-            <p class="text-primary-light text-sm md:text-base font-medium">
+            <p class="text-primary-light text-sm font-medium">
                 Pantau performa koleksi fashion Anda hari ini.
             </p>
         </div>

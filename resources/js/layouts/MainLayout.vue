@@ -15,27 +15,9 @@
             ></div>
         </transition>
 
-        <BaseModal
-            :show="isLogoutModalOpen"
-            title="Konfirmasi Keluar"
-            confirm-text="Ya, Keluar"
-            variant="danger"
-            @close="isLogoutModalOpen = false"
-            @confirm="confirmLogout"
-        >
-            <template #icon>
-                <LogOut :size="24" />
-            </template>
-            <template #description>
-                Apakah Anda yakin ingin keluar dari sistem SYAR'IHUB? Sesi Anda
-                akan berakhir.
-            </template>
-        </BaseModal>
-
         <Sidebar
             :is-collapsed="isSidebarCollapsed"
             :is-mobile-open="isMobileSidebarOpen"
-            :menu-items="menuItems"
             @logout="handleLogout"
             @close-sidebar="isMobileSidebarOpen = false"
         />
@@ -61,6 +43,21 @@
                 </footer>
             </main>
         </div>
+
+        <BaseModal
+            :show="isLogoutModalOpen"
+            title="Konfirmasi Keluar"
+            confirm-text="Ya, Keluar"
+            variant="danger"
+            @close="isLogoutModalOpen = false"
+            @confirm="confirmLogout"
+        >
+            <template #icon><LogOut :size="24" /></template>
+            <template #description>
+                Apakah Anda yakin ingin keluar dari sistem SYAR'IHUB? Sesi Anda
+                akan berakhir.
+            </template>
+        </BaseModal>
     </div>
 </template>
 
@@ -71,15 +68,6 @@ import { useUiStore } from "@/stores/ui";
 import { useAuthStore } from "@/stores/auth";
 import { LogOut } from "lucide-vue-next";
 import BaseModal from "@/components/BaseModal.vue";
-import {
-    LayoutDashboard,
-    ShoppingCart,
-    Package,
-    Users,
-    FileText,
-    AlertTriangle,
-} from "lucide-vue-next";
-
 import Sidebar from "./Sidebar.vue";
 import TopBar from "./TopBar.vue";
 
@@ -92,7 +80,6 @@ const isSidebarCollapsed = ref(false);
 const isMobileSidebarOpen = ref(false);
 const isLogoutModalOpen = ref(false);
 
-// Otomatis tutup sidebar mobile saat pindah halaman
 watch(
     () => route.path,
     () => {
@@ -100,66 +87,12 @@ watch(
     }
 );
 
-const menuItems = [
-    { path: "/", label: "Dashboard", icon: LayoutDashboard },
-    { path: "/pos", label: "Penjualan", icon: ShoppingCart },
-    {
-        path: "/inventory/low-stock",
-        label: "Stok Kritis",
-        icon: AlertTriangle,
-        roles: ["owner", "gudang"],
-    },
-    {
-        path: "/products",
-        label: "Produk",
-        icon: Package,
-        roles: ["owner", "gudang"],
-    },
-    {
-        path: "/reports/sales",
-        label: "Laporan",
-        icon: FileText,
-        roles: ["owner"],
-    },
-    { path: "/users", label: "Pengguna", icon: Users, roles: ["owner"] },
-];
-
 const handleLogout = () => {
     isLogoutModalOpen.value = true;
 };
-
-// Fungsi eksekusi setelah user klik "Ya, Keluar" di modal
 const confirmLogout = async () => {
-    isLogoutModalOpen.value = false; // Tutup modal dulu
+    isLogoutModalOpen.value = false;
     await authStore.logout();
     router.push({ name: "login" });
 };
 </script>
-
-<style scoped>
-.fade-enter-active,
-.fade-leave-active {
-    transition: opacity 0.3s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-    opacity: 0;
-}
-
-@keyframes progress {
-    0% {
-        width: 0;
-        transform: translateX(0);
-    }
-    50% {
-        width: 70%;
-    }
-    100% {
-        width: 100%;
-        transform: translateX(100%);
-    }
-}
-.animate-progress {
-    animation: progress 1.5s infinite linear;
-}
-</style>

@@ -30,6 +30,34 @@ const routes = [
                 component: () =>
                     import("@/modules/product/pages/ProductIndex.vue"),
             },
+            {
+                path: "/products/:id",
+                name: "products.show",
+                component: () =>
+                    import("@/modules/product/pages/DetailProduct.vue"),
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/categories",
+                name: "categories",
+                component: () =>
+                    import("@/modules/category/pages/CategoryIndex.vue"),
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/users",
+                name: "User Management",
+                component: () =>
+                    import("@/modules/userManagement/pages/UserIndex.vue"),
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/reports/sales",
+                name: "Sales Report",
+                component: () =>
+                    import("@/modules/report/pages/SalesReport.vue"),
+                meta: { requiresAuth: true },
+            },
 
             // Contoh rute lainnya tetap tersimpan sebagai komentar sesuai kode Anda...
             // {

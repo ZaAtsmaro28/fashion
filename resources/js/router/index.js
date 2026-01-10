@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import routes from "./routes";
 import { useAuthStore } from "@/stores/auth";
+import api from "@/api";
 
 const router = createRouter({
     history: createWebHistory(),
@@ -10,25 +11,26 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
     const authStore = useAuthStore();
 
-    // 1. Cek jika rute butuh autentikasi
+    // SINKRONISASI HEADER AXIOS (Kunci agar tidak 401 saat refresh)
+    if (authStore.token) {
+        api.defaults.headers.common[
+            "Authorization"
+        ] = `Bearer ${authStore.token}`;
+    }
+
     const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
-    // 2. Cek jika rute hanya untuk guest (seperti login)
     const guestOnly = to.matched.some(
         (record) => record.meta.requiresAuth === false
     );
 
-    // Ambil token dari store atau localStorage langsung untuk validasi paling akurat
-    const isAuthenticated =
-        !!authStore.token || !!localStorage.getItem("token");
+    // Cek status autentikasi dari getter store
+    const isAuthenticated = authStore.isAuthenticated;
 
     if (requiresAuth && !isAuthenticated) {
-        // Jika butuh login tapi tidak ada token, lempar ke login
         next({ name: "login" });
     } else if (guestOnly && isAuthenticated) {
-        // Jika sudah login tapi coba buka halaman login, lempar ke dashboard
-        next({ name: "dashboard" });
+        next({ name: "products.index" }); // Arahkan ke katalog jika sudah login
     } else {
-        // Lanjutkan navigasi
         next();
     }
 });

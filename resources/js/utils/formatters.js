@@ -1,36 +1,36 @@
 /**
- * Format angka ke Rupiah
+ * Syarihub Utility Formatter
+ * Menggunakan standar Intl untuk performa dan akurasi locale Indonesia
  */
+
 export const formatCurrency = (value) => {
-    if (!value) return "Rp 0";
+    // 1. Antisipasi jika nilai null, undefined, atau kosong
+    if (value === null || value === undefined || value === "") return "Rp 0";
+
+    // 2. Konversi ke float jika input berupa string (seperti dari API: "3646536.00")
+    const numberValue = typeof value === "string" ? parseFloat(value) : value;
+
+    // 3. Cek jika hasil konversi bukan angka yang valid
+    if (isNaN(numberValue)) return "Rp 0";
+
     return new Intl.NumberFormat("id-ID", {
         style: "currency",
         currency: "IDR",
         minimumFractionDigits: 0,
-    }).format(value);
+        maximumFractionDigits: 0,
+    }).format(numberValue);
 };
 
-/**
- * Format tanggal ke format lokal Indonesia
- */
-export const formatDate = (dateString, includeTime = false) => {
+export const formatNumber = (value) => {
+    if (value === null || value === undefined) return "0";
+    const numberValue = typeof value === "string" ? parseInt(value) : value;
+    if (isNaN(numberValue)) return "0";
+
+    return new Intl.NumberFormat("id-ID").format(numberValue);
+};
+
+export const formatDateFull = (dateString) => {
     if (!dateString) return "-";
-    const options = {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-    };
-    if (includeTime) {
-        options.hour = "2-digit";
-        options.minute = "2-digit";
-    }
+    const options = { year: "numeric", month: "long", day: "numeric" };
     return new Date(dateString).toLocaleDateString("id-ID", options);
-};
-
-/**
- * Capitalize first letter
- */
-export const capitalize = (str) => {
-    if (!str) return "";
-    return str.charAt(0).toUpperCase() + str.slice(1);
 };

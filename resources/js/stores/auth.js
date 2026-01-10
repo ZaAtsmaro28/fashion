@@ -22,7 +22,6 @@ export const useAuthStore = defineStore("auth", {
                 if (token) {
                     this.token = token;
                     this.user = user;
-
                     localStorage.setItem("token", token);
                     localStorage.setItem("user", JSON.stringify(user));
 
@@ -38,23 +37,15 @@ export const useAuthStore = defineStore("auth", {
 
         async logout() {
             try {
-                // Beri tahu server bahwa token ini sudah tidak berlaku
                 await api.post("/logout");
             } catch (error) {
                 console.error("Logout error on server:", error);
             } finally {
-                // 1. Reset State Pinia secara manual
                 this.token = null;
                 this.user = null;
-
-                // 2. Hapus data dari Local Storage
                 localStorage.removeItem("token");
                 localStorage.removeItem("user");
-
-                // 3. Bersihkan Header Axios
                 delete api.defaults.headers.common["Authorization"];
-
-                // 4. Force reload (Opsional tapi direkomendasikan)
                 window.location.href = "/login";
             }
         },

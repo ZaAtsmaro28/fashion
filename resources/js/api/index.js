@@ -1,5 +1,6 @@
 import axios from "axios";
-import { useUiStore } from "@/stores/ui"; // Import UI Store
+import { useUiStore } from "@/stores/ui";
+import { useAuthStore } from "@/stores/auth"; // Import Auth Store
 
 const api = axios.create({
     baseURL: "http://fashion.test/api",
@@ -12,9 +13,13 @@ const api = axios.create({
 api.interceptors.request.use(
     (config) => {
         const uiStore = useUiStore();
-        uiStore.setLoading(true); // Mulai Loading
+        const authStore = useAuthStore(); // Ambil dari store
 
-        const token = localStorage.getItem("auth_token");
+        uiStore.setLoading(true);
+
+        // Gunakan kunci "token" agar sama dengan yang ada di AuthStore
+        const token = authStore.token || localStorage.getItem("token");
+
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -30,16 +35,30 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => {
         const uiStore = useUiStore();
-        uiStore.setLoading(false); // Selesai Loading
+        uiStore.setLoading(false);
         return response;
     },
     (error) => {
         const uiStore = useUiStore();
-        uiStore.setLoading(false); // Selesai Loading (meskipun error)
+        const authStore = useAuthStore();
 
+        uiStore.setLoading(false);
+
+        // Jika error 401 (Unauthorized/Token Expired)
         if (error.response && error.response.status === 401) {
-            localStorage.removeItem("auth_token");
-            window.location.href = "/login";
+            // Bersihkan data di store dan localStorage melalui action logout
+            // Kita tidak perlu memanggil API logout ke server karena token sudah tidak valid
+            authStore.$patch({
+                token: null,
+                user: null,
+            });
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+
+            // Redirect ke login hanya jika kita tidak sedang berada di halaman login
+            if (window.location.pathname !== "/login") {
+                window.location.href = "/login";
+            }
         }
         return Promise.reject(error);
     }

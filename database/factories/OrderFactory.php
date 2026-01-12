@@ -7,44 +7,49 @@ use App\Models\ProductVariant;
 use App\Models\OrderItem;
 use App\Models\StockMutation;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Carbon\Carbon;
 
 class OrderFactory extends Factory
 {
     public function definition(): array
     {
+        // 1. SET RENTANG TANGGAL: Januari 2026 (Tanggal 1 sampai 31)
+        $randomDate = $this->faker->dateTimeBetween('2026-01-01', '2026-01-31');
+
         return [
-            'invoice_number' => 'INV-' . now()->format('Ymd') . '-' . strtoupper($this->faker->unique()->bothify('??###')),
+            // Gunakan $randomDate agar invoice sesuai dengan tanggal transaksi
+            'invoice_number' => 'INV-' . $randomDate->format('Ymd') . '-' . strtoupper($this->faker->unique()->bothify('??###')),
             'user_id' => $this->faker->randomElement([1, 3]),
             'customer_name' => $this->faker->name(),
             'total_price' => 0,
             'paid_amount' => 0,
             'change_amount' => 0,
+            'status' => 'completed',
+
+            // Set created_at dan updated_at manual agar tidak menggunakan waktu sekarang
+            'created_at' => $randomDate,
+            'updated_at' => $randomDate,
         ];
     }
 
     public function configure()
     {
         return $this->afterCreating(function (Order $order) {
-            // Mengambil 1-4 varian secara acak beserta data produk induknya
+            // Tangkap tanggal dari order agar item dan mutasi stock SINKRON
+            $orderDate = $order->created_at;
+
             $variants = ProductVariant::with('product')->inRandomOrder()->take(rand(1, 4))->get();
             $runningTotal = 0;
 
             foreach ($variants as $variant) {
                 $qty = rand(1, 3);
-
-                /** * LOGIKA HARGA:
-                 * Harga Produk Utama + Additional Price dari Varian
-                 * Kita gunakan (float) untuk memastikan angka, dan ?? 0 jika null
-                 */
                 $basePrice = (float) ($variant->product->price ?? 0);
                 $additionalPrice = (float) ($variant->additional_price ?? 0);
-
                 $finalPrice = $basePrice + $additionalPrice;
-
                 $subtotal = $qty * $finalPrice;
                 $runningTotal += $subtotal;
 
-                // 2. Buat Order Item dengan harga final
+                // OrderItem menggunakan tanggal yang sama dengan Order
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $variant->product_id,
@@ -52,9 +57,11 @@ class OrderFactory extends Factory
                     'quantity' => $qty,
                     'price_at_sale' => $finalPrice,
                     'subtotal' => $subtotal,
+                    'created_at' => $orderDate,
+                    'updated_at' => $orderDate,
                 ]);
 
-                // 3. Buat Stock Mutation
+                // StockMutation menggunakan tanggal yang sama dengan Order
                 StockMutation::create([
                     'product_variant_id' => $variant->id,
                     'quantity' => $qty,
@@ -62,10 +69,11 @@ class OrderFactory extends Factory
                     'reference_type' => 'Order',
                     'reference_id' => $order->id,
                     'description' => "Penjualan Invoice: {$order->invoice_number}",
+                    'created_at' => $orderDate,
+                    'updated_at' => $orderDate,
                 ]);
             }
 
-            // 4. Update Order dengan total yang sudah dihitung
             $paidAmount = ceil($runningTotal / 10000) * 10000;
             if ($paidAmount < $runningTotal) $paidAmount += 10000;
 

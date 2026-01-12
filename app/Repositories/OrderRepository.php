@@ -50,57 +50,73 @@ class OrderRepository implements OrderRepositoryInterface
     /**
      * Mengambil data laporan dengan mengecualikan transaksi yang dibatalkan
      */
-    // public function getReportData($startDate, $endDate)
-    // {
-    //     // Builder dasar dengan filter status dan tanggal
-    //     $orderQuery = Order::where('status', 'completed')
-    //         ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
-
-    //     return [
-    //         'total_revenue'      => (float) $orderQuery->sum('total_price'),
-    //         'total_transactions' => $orderQuery->count(),
-    //         'items_sold'         => OrderItem::whereHas('order', function ($q) use ($startDate, $endDate) {
-    //             $q->where('status', 'completed')
-    //                 ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
-    //         })
-    //             ->with('product:id,category_id,name,sku')
-    //             ->select(
-    //                 'product_id',
-    //                 DB::raw('SUM(quantity) as total_qty'),
-    //                 DB::raw('SUM(subtotal) as total_amount')
-    //             )
-    //             ->groupBy('product_id')
-    //             ->get()
-    //     ];
-    // }
-    public function getReportData($startDate = null, $endDate = null, $perPage = 10)
+    public function getReportExportData($startDate, $endDate)
     {
-        // 1. Query untuk Ringkasan (Total Revenue & Count)
-        $summaryQuery = Order::where('status', 'completed')
-            ->when($startDate && $endDate, function ($q) use ($startDate, $endDate) {
-                return $q->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
-            });
+        // Siapkan format tanggal yang benar
+        $start = $startDate . ' 00:00:00';
+        $end = $endDate . ' 23:59:59';
 
-        // 2. Query untuk List Produk Terjual (dengan Pagination)
-        $itemsQuery = OrderItem::whereHas('order', function ($q) use ($startDate, $endDate) {
+        // QUERY UTAMA: Hanya ambil data dari OrderItem yang punya order 'completed'
+        $itemsSold = OrderItem::whereHas('order', function ($q) use ($start, $end) {
             $q->where('status', 'completed')
-                ->when($startDate && $endDate, function ($q2) use ($startDate, $endDate) {
-                    return $q2->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
-                });
+                ->whereBetween('created_at', [$start, $end]);
         })
-            ->with('product:id,category_id,name,sku')
+            ->with('product:id,sku,name') // Eager loading agar tidak N+1
             ->select(
                 'product_id',
                 DB::raw('SUM(quantity) as total_qty'),
                 DB::raw('SUM(subtotal) as total_amount')
             )
             ->groupBy('product_id')
-            ->paginate($perPage); // Tambahkan pagination di sini
+            ->get();
 
         return [
-            'total_revenue'      => (float) $summaryQuery->sum('total_price'),
-            'total_transactions' => $summaryQuery->count(),
-            'items_sold'         => $itemsQuery // Ini sekarang berisi objek LengthAwarePaginator
+            'total_qty'    => (int) $itemsSold->sum('total_qty'),
+            'total_amount' => (float) $itemsSold->sum('total_amount'),
+            'items_sold'   => $itemsSold
+        ];
+    }
+
+    public function getReportData($startDate = null, $endDate = null, $perPage = 10, $search = null)
+    {
+        $start = $startDate ? $startDate . ' 00:00:00' : null;
+        $end = $endDate ? $endDate . ' 23:59:59' : null;
+
+        // Base Query untuk OrderItem yang 'completed'
+        $baseQuery = OrderItem::whereHas('order', function ($q) use ($start, $end) {
+            $q->where('status', 'completed')
+                ->when($start && $end, fn($q2) => $q2->whereBetween('created_at', [$start, $end]));
+        });
+
+        // Tambahkan Filter Search (SKU atau Nama Produk)
+        $baseQuery->when($search, function ($q) use ($search) {
+            $q->whereHas('product', function ($pq) use ($search) {
+                $pq->where('name', 'like', "%{$search}%")
+                    ->orWhere('sku', 'like', "%{$search}%");
+            });
+        });
+
+        // 1. Ambil Summary (Total dari hasil yang sudah difilter search)
+        // Gunakan clone() agar baseQuery tetap bisa dipakai untuk pagination
+        $summary = (clone $baseQuery)->select(
+            DB::raw('SUM(subtotal) as total_revenue'),
+            DB::raw('COUNT(DISTINCT order_id) as total_transactions')
+        )->first();
+
+        // 2. Query untuk List Produk (dengan Pagination)
+        $itemsSold = $baseQuery->with('product:id,category_id,name,sku')
+            ->select(
+                'product_id',
+                DB::raw('SUM(quantity) as total_qty'),
+                DB::raw('SUM(subtotal) as total_amount')
+            )
+            ->groupBy('product_id')
+            ->paginate($perPage);
+
+        return [
+            'total_revenue'      => (float) ($summary->total_revenue ?? 0),
+            'total_transactions' => (int) ($summary->total_transactions ?? 0),
+            'items_sold'         => $itemsSold
         ];
     }
 }

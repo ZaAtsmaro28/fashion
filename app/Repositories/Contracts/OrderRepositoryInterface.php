@@ -10,4 +10,5 @@ interface OrderRepositoryInterface
     public function getTodayTurnover();
     public function getTodayOrderCount();
     public function getReportData($startDate, $endDate);
+    public function getReportExportData($startDate, $endDate);
 }

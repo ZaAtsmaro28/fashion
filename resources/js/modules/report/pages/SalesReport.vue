@@ -74,7 +74,7 @@
                 <div class="w-full md:w-80">
                     <BaseSearch
                         v-model="searchQuery"
-                        placeholder="Cari SKU atau nama produk di halaman ini..."
+                        placeholder="Cari SKU atau nama produk di seluruh data..."
                     />
                 </div>
             </div>
@@ -175,44 +175,47 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
-import { FileDown, FileDownIcon } from "lucide-vue-next";
+import { ref, computed, onMounted, watch } from "vue";
+import { FileDown } from "lucide-vue-next"; // Hapus FileDownIcon jika tidak dipakai
 import { useSalesReportStore } from "../../../stores/report";
 import api from "../../../api/index";
 import BaseInputDate from "@/components/BaseInputDate.vue";
 import BaseSearch from "@/components/BaseSearch.vue";
-import Pagination from "@/components/Pagination.vue"; // Pastikan path benar
+import Pagination from "@/components/Pagination.vue";
 
 const store = useSalesReportStore();
 const searchQuery = ref("");
 
-// Otomatis panggil data saat halaman dibuka
+// --- 1. LOGIKA PENCARIAN (SERVER-SIDE) ---
+let timeoutId = null;
+watch(searchQuery, (newVal) => {
+    console.log("Input terdeteksi:", newVal);
+    // Update filter di store agar saat API dipanggil, param 'search' terbawa
+    store.filters.search = newVal;
+
+    // Debounce: Tunggu user berhenti mengetik selama 500ms
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+        // Panggil API (Pencarian dilakukan di Database oleh Laravel)
+        store.fetchSalesReport();
+    }, 800);
+});
+
+// --- 2. LIFE CYCLE ---
 onMounted(() => {
     store.fetchSalesReport();
 });
 
-// Penanganan Pindah Halaman
+// --- 3. COMPUTED DATA ---
+const filteredItems = computed(() => store.items || []);
+
+// --- 4. HANDLERS ---
 const handlePageChange = (url) => {
     if (url) {
         store.fetchSalesReport(url);
-        // Scroll ke atas tabel agar user tahu konten berubah
         window.scrollTo({ top: 0, behavior: "smooth" });
     }
 };
-
-// Filter client-side (hanya memfilter data yang ada di halaman saat ini)
-const filteredItems = computed(() => {
-    const data = store.items || [];
-    if (!searchQuery.value) return data;
-
-    const query = searchQuery.value.toLowerCase();
-    return data.filter((item) => {
-        return (
-            item?.product?.name?.toLowerCase().includes(query) ||
-            item?.product?.sku?.toLowerCase().includes(query)
-        );
-    });
-});
 
 const formatCurrency = (val) => {
     if (!val) return "Rp 0";
@@ -230,10 +233,11 @@ const handleExport = async () => {
     }
 
     try {
-        const response = await api.get("/reports/sales/export", {
+        const response = await api.get("/reports/sales/download", {
             params: {
                 start_date: store.filters.start_date,
                 end_date: store.filters.end_date,
+                search: store.filters.search, // Tambahkan search agar hasil export sesuai filter
             },
             responseType: "blob",
         });

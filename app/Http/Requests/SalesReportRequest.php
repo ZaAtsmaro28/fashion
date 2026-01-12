@@ -24,6 +24,8 @@ class SalesReportRequest extends FormRequest
         return [
             'start_date' => 'nullable|date',
             'end_date'   => 'nullable|date|after_or_equal:start_date',
+            'per_page'   => 'nullable|integer',
+            'search'     => 'nullable|string|max:255',
         ];
     }
 }

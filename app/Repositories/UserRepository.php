@@ -16,8 +16,7 @@ class UserRepository implements UserRepositoryInterface
                 ->orWhere('email', 'like', "%{$search}%");
         }
 
-        // Urutkan dari yang terbaru
-        return $query->latest()->paginate($perPage);
+        return $query->orderBy('id', 'asc')->paginate($perPage);
     }
 
     public function findById($id)

@@ -25,9 +25,8 @@ export const useAuthStore = defineStore("auth", {
                     localStorage.setItem("token", token);
                     localStorage.setItem("user", JSON.stringify(user));
 
-                    api.defaults.headers.common[
-                        "Authorization"
-                    ] = `Bearer ${token}`;
+                    api.defaults.headers.common["Authorization"] =
+                        `Bearer ${token}`;
                     return response;
                 }
             } catch (error) {
@@ -47,6 +46,30 @@ export const useAuthStore = defineStore("auth", {
                 localStorage.removeItem("user");
                 delete api.defaults.headers.common["Authorization"];
                 window.location.href = "/login";
+            }
+        },
+
+        async updateProfile(payload) {
+            try {
+                const response = await api.put("/profile", payload);
+
+                this.user.name = payload.name;
+                this.user.email = payload.email;
+
+                localStorage.setItem("user", JSON.stringify(this.user));
+
+                return response.data;
+            } catch (error) {
+                throw error;
+            }
+        },
+
+        async updatePassword(payload) {
+            try {
+                const response = await api.put("/profile/password", payload);
+                return response.data;
+            } catch (error) {
+                throw error;
             }
         },
     },

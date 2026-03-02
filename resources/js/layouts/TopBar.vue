@@ -5,14 +5,14 @@
         <div class="flex items-center gap-4">
             <button
                 @click="$emit('open-mobile-sidebar')"
-                class="cursor-pointer lg:hidden p-2 rounded-lg hover:bg-base text-primary-light hover:text-primary transition-colors"
+                class="cursor-pointer lg:hidden p-2 rounded-lg hover:bg-base text-primary-light hover:text-primary transition-colors focus:outline-none"
             >
                 <Menu :size="24" />
             </button>
 
             <button
                 @click="$emit('toggleSidebar')"
-                class="cursor-pointer hidden lg:block p-2 rounded-lg hover:bg-base text-primary-light hover:text-primary transition-colors"
+                class="cursor-pointer hidden lg:block p-2 rounded-lg hover:bg-base text-primary-light hover:text-primary transition-colors focus:outline-none"
             >
                 <PanelsTopLeft v-if="isCollapsed" :size="24" />
                 <PanelLeftClose v-else :size="24" />
@@ -36,30 +36,39 @@
                     {{ authStore.userRole }}
                 </p>
             </div>
-            <div
-                class="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center text-white border border-secondary/20 uppercase font-bold shadow-sm"
+
+            <button
+                @click="isProfileModalOpen = true"
+                class="w-10 h-10 rounded-full cursor-pointer bg-primary-light flex items-center justify-center text-white border border-secondary/20 uppercase font-bold shadow-sm hover:ring-2 hover:ring-primary/50 hover:bg-primary transition-all focus:outline-none"
+                title="Pengaturan Profil"
             >
-                {{ authStore.user?.name?.charAt(0) }}
-            </div>
+                {{ authStore.user?.name?.charAt(0) || "U" }}
+            </button>
         </div>
+
+        <ProfileModal
+            :show="isProfileModalOpen"
+            @close="isProfileModalOpen = false"
+        />
     </header>
 </template>
 
 <script setup>
+import { ref, computed } from "vue";
 import { PanelsTopLeft, Menu, PanelLeftClose } from "lucide-vue-next";
 import { useAuthStore } from "@/stores/auth";
-import { computed } from "vue";
 import { useRoute } from "vue-router";
+import ProfileModal from "@/components/ProfileModal.vue";
 
 defineProps({ isCollapsed: Boolean });
-
-// PASTIKAN KEDUA EMIT INI ADA
 defineEmits(["toggleSidebar", "open-mobile-sidebar"]);
 
 const authStore = useAuthStore();
 const route = useRoute();
 
+const isProfileModalOpen = ref(false);
+
 const currentRouteName = computed(
-    () => route.name?.replace(".", " ") || "Dashboard"
+    () => route.name?.replace(".", " ") || "Dashboard",
 );
 </script>
